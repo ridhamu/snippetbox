@@ -2,14 +2,30 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "GO")
-	w.WriteHeader(http.StatusOK)
-	_, _ = fmt.Fprintf(w, "welcomd to home\n")
+	// w.WriteHeader(http.StatusOK)
+	// _, _ = fmt.Fprintf(w, "welcomd to home\n")
+
+	template, err := template.ParseFiles("./ui/html/pages/home.html")
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = template.Execute(w, nil)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func snippetView(w http.ResponseWriter, r *http.Request) {
