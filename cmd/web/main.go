@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -11,6 +13,8 @@ func main() {
 	addr := flag.String("addr", ":4000", "HOST:port")
 
 	flag.Parse()
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	mux := http.NewServeMux()
 
@@ -24,9 +28,11 @@ func main() {
 	mux.HandleFunc("GET /snippet/create", snippetCreate)
 	mux.HandleFunc("POST /snippet/create", snippetCreatePost)
 
-	log.Printf("server running on %s\n", *addr)
+	logger.Info(fmt.Sprintf("Server Running on %s", *addr))
+
 	err := http.ListenAndServe(*addr, mux)
-	log.Fatal(err)
+	logger.Error(err.Error())
+	os.Exit(1)
 }
 
 // using custom middle ware to send 404 to unallowed directory listing
