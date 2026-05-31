@@ -56,5 +56,34 @@ WHERE expires > UTC_TIMESTAMP() AND id = ?`
 }
 
 func (sm *SnippetModels) Latest() ([]Snippet, error) {
-	return nil, nil
+	stmt := `SELECT id, title, content, created, expires FROM snippets
+WHERE expires > UTC_TIMESTAMP() ORDER BY id DESC LIMIT 10`
+
+	var snippetList []Snippet
+
+	rows, err := sm.DB.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	for rows.Next() {
+		var oneRowSnippet Snippet
+
+		err = rows.Scan(&oneRowSnippet.ID, &oneRowSnippet.Title, &oneRowSnippet.Content, &oneRowSnippet.Created, &oneRowSnippet.Expires)
+		if err != nil {
+			return nil, err
+		}
+
+		snippetList = append(snippetList, oneRowSnippet)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return snippetList, nil
 }
