@@ -1,12 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type application struct {
@@ -15,33 +18,45 @@ type application struct {
 
 func main() {
 	addr := flag.String("addr", ":4000", "HOST:port")
+	dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "MySql Data Source name")
 
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	db, err := openDB(*dsn)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	defer db.Close()
 
 	// initialized our app struct
 	app := application{
 		logger: logger,
 	}
 
-	// mux := http.NewServeMux()
-	//
-	// staticFileHandler := http.FileServer(neuteredFileSystem{http.Dir("./ui/static/")})
-	//
-	// // mux.Handle("GET /static/", http.StripPrefix("/static", neuter(staticFileHandler)))
-	// mux.Handle("GET /static/", http.StripPrefix("/static", staticFileHandler))
-	//
-	// mux.HandleFunc("GET /{$}", app.home)
-	// mux.HandleFunc("GET /snippet/view/{id}", app.snippetView)
-	// mux.HandleFunc("GET /snippet/create", app.snippetCreate)
-	// mux.HandleFunc("POST /snippet/create", app.snippetCreatePost)
-
 	logger.Info(fmt.Sprintf("Server Running on %s", *addr))
 
-	err := http.ListenAndServe(*addr, app.routes())
+	err = http.ListenAndServe(*addr, app.routes())
 	logger.Error(err.Error())
 	os.Exit(1)
+}
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+
+	return db, nil
 }
 
 // using custom middle ware to send 404 to unallowed directory listing
