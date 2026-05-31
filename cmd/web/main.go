@@ -10,10 +10,13 @@ import (
 	"path/filepath"
 
 	_ "github.com/go-sql-driver/mysql"
+
+	"github.com/ridhamu/snippetbox/internal/models"
 )
 
 type application struct {
-	logger *slog.Logger
+	logger       *slog.Logger
+	snippetModel *models.SnippetModels
 }
 
 func main() {
@@ -35,6 +38,9 @@ func main() {
 	// initialized our app struct
 	app := application{
 		logger: logger,
+		snippetModel: &models.SnippetModels{
+			DB: db,
+		},
 	}
 
 	logger.Info(fmt.Sprintf("Server Running on %s", *addr))
