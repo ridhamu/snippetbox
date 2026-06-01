@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 
@@ -11,8 +12,6 @@ import (
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "GO")
-	// w.WriteHeader(http.StatusOK)
-	// _, _ = fmt.Fprintf(w, "welcomd to home\n")
 
 	snippetList, err := app.snippetModel.Latest()
 	if err != nil {
@@ -20,34 +19,27 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, snippet := range snippetList {
-		fmt.Fprintf(w, "%+v\n", snippet)
+	templateData := templateData{
+		SnippetList: snippetList,
 	}
 
-	// files := []string{
-	// 	"./ui/html/base.html",
-	// 	"./ui/html/pages/home.html",
-	// 	"./ui/html/partials/nav.html",
-	// }
-	//
-	// template, err := template.ParseFiles(files...)
-	// if err != nil {
-	// 	// log.Println(err.Error())
-	// 	// app.logger.Error(err.Error(), "method", r.Method, "URI", r.URL.RequestURI())
-	// 	// http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	app.serverError(w, r, err)
-	// 	return
-	// }
-	//
-	// // err = template.Execute(w, nil)
-	// err = template.ExecuteTemplate(w, "base", nil)
-	// if err != nil {
-	// 	// log.Println(err.Error())
-	// 	// app.logger.Error(err.Error(), "method", r.Method, "URI", r.URL.RequestURI())
-	// 	// http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	app.serverError(w, r, err)
-	// 	return
-	// }
+	files := []string{
+		"./ui/html/base.html",
+		"./ui/html/partials/nav.html",
+		"./ui/html/pages/home.html",
+	}
+
+	template, err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = template.ExecuteTemplate(w, "base", templateData)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +59,27 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = fmt.Fprintf(w, "%+v", snippet)
+	templateData := templateData{
+		Snippet: snippet,
+	}
+
+	files := []string{
+		"./ui/html/base.html",
+		"./ui/html/partials/nav.html",
+		"./ui/html/pages/view.html",
+	}
+
+	template, err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = template.ExecuteTemplate(w, "base", templateData)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
