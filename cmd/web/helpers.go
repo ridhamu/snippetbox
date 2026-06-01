@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"runtime/debug"
@@ -21,4 +22,19 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 
 func (app *application) clientError(w http.ResponseWriter, status int) {
 	http.Error(w, http.StatusText(status), status)
+}
+
+func (app *application) render(w http.ResponseWriter, r *http.Request, status int, data templateData, tsName string) {
+	t, ok := app.templateCache[tsName]
+	if !ok {
+		app.serverError(w, r, errors.New("no matching template for given path"))
+		return
+	}
+	w.WriteHeader(status)
+
+	err := t.ExecuteTemplate(w, "base", data)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }

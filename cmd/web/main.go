@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,8 +16,9 @@ import (
 )
 
 type application struct {
-	logger       *slog.Logger
-	snippetModel *models.SnippetModels
+	logger        *slog.Logger
+	snippetModel  *models.SnippetModels
+	templateCache map[string]*template.Template
 }
 
 func main() {
@@ -25,6 +27,7 @@ func main() {
 
 	flag.Parse()
 
+	// INIT ALL REQUIRED DEPENDENCIES
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	db, err := openDB(*dsn)
@@ -33,21 +36,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	defer db.Close()
+	cacheTemplate, err := newTemplateCache()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 
-	// initialized our app struct
+	defer func() {
+		_ = db.Close()
+	}()
+
+	// app init
 	app := application{
 		logger: logger,
 		snippetModel: &models.SnippetModels{
 			DB: db,
 		},
+		templateCache: cacheTemplate,
 	}
+	// END INIT
 
+	// STARTING SERVER
 	logger.Info(fmt.Sprintf("Server Running on %s", *addr))
 
 	err = http.ListenAndServe(*addr, app.routes())
 	logger.Error(err.Error())
 	os.Exit(1)
+	// END STARTING SERVER
 }
 
 func openDB(dsn string) (*sql.DB, error) {
