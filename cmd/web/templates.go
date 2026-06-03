@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"path/filepath"
+	"time"
 
 	"github.com/ridhamu/snippetbox/internal/models"
 )
@@ -11,6 +12,14 @@ type templateData struct {
 	CurrentYear int
 	Snippet     models.Snippet
 	SnippetList []models.Snippet
+}
+
+func humanDate(t time.Time) string {
+	return t.Format("02 Jan 2006 at 15:04")
+}
+
+var funcs = template.FuncMap{
+	"HumanDate": humanDate,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
@@ -24,7 +33,8 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	for _, page := range fileList {
 		name := filepath.Base(page)
 
-		ts, err := template.ParseFiles("./ui/html/base.html")
+		// ts, err := template.ParseFiles("./ui/html/base.html")
+		ts, err := template.New(name).Funcs(funcs).ParseFiles("./ui/html/base.html")
 		if err != nil {
 			return nil, err
 		}
