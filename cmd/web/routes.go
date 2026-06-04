@@ -1,6 +1,10 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/justinas/alice"
+)
 
 // mux := http.NewServeMux()
 // staticFileHandler := http.FileServer(neuteredFileSystem{http.Dir("./ui/static/")})
@@ -25,5 +29,7 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /snippet/create", app.snippetCreate)
 	mux.HandleFunc("POST /snippet/create", app.snippetCreatePost)
 
-	return app.recoverPanic(app.logRequest(commonHeaders(mux)))
+	myMiddleware := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
+
+	return myMiddleware.Then(mux)
 }
