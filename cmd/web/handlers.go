@@ -51,8 +51,20 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, data, "view.html")
 }
 
+type FormData struct {
+	Title       string
+	Content     string
+	Expires     int
+	FieldErrors map[string]string
+}
+
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
+	formData := FormData{
+		Expires: 365,
+	}
+
 	data := app.newTemplateData(r)
+	data.Form = formData
 
 	app.render(w, r, http.StatusOK, data, "create.html")
 }
@@ -72,26 +84,33 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	errorFields := make(map[string]string)
+	formData := FormData{
+		Title:       title,
+		Content:     content,
+		Expires:     expires,
+		FieldErrors: map[string]string{},
+	}
 
-	if strings.TrimSpace(title) == "" {
-		errorFields["title"] = "This Field Cannot be blank"
+	if strings.TrimSpace(formData.Title) == "" {
+		formData.FieldErrors["title"] = "This Field Cannot be blank"
 	}
 
 	if utf8.RuneCountInString(title) > 100 {
-		errorFields["title"] = "This field cannot be more than 100 characters long"
+		formData.FieldErrors["title"] = "This field cannot be more than 100 characters long"
 	}
 
 	if strings.TrimSpace(content) == "" {
-		errorFields["content"] = "This field cannot be blank"
+		formData.FieldErrors["content"] = "This field cannot be blank"
 	}
 
 	if expires != 1 && expires != 7 && expires != 365 {
-		errorFields["expires"] = "This must equal 1, 7 or 365"
+		formData.FieldErrors["expires"] = "This must equal 1, 7 or 365"
 	}
 
-	if len(errorFields) > 0 { // i want to add break point here and see the errorFields
-		_, _ = fmt.Fprintf(w, "%+v\n", errorFields)
+	if len(formData.FieldErrors) > 0 { // i want to add break point here and see the errorFields
+		data := app.newTemplateData(r)
+		data.Form = formData
+		app.render(w, r, http.StatusUnprocessableEntity, data, "create.html")
 		return
 	}
 
