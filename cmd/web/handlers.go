@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/ridhamu/snippetbox/internal/models"
 )
@@ -67,6 +69,29 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	errorFields := make(map[string]string)
+
+	if strings.TrimSpace(title) == "" {
+		errorFields["title"] = "This Field Cannot be blank"
+	}
+
+	if utf8.RuneCountInString(title) > 100 {
+		errorFields["title"] = "This field cannot be more than 100 characters long"
+	}
+
+	if strings.TrimSpace(content) == "" {
+		errorFields["content"] = "This field cannot be blank"
+	}
+
+	if expires != 1 && expires != 7 && expires != 365 {
+		errorFields["expires"] = "This must equal 1, 7 or 365"
+	}
+
+	if len(errorFields) > 0 { // i want to add break point here and see the errorFields
+		_, _ = fmt.Fprintf(w, "%+v\n", errorFields)
 		return
 	}
 
