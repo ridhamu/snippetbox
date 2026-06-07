@@ -69,12 +69,19 @@ func main() {
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
 	}
+
+	// init server configuration
+	srv := http.Server{
+		Addr:     *addr,
+		Handler:  app.routes(),
+		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelWarn),
+	}
 	// END INIT
 
 	// STARTING SERVER
 	logger.Info(fmt.Sprintf("Server Running on %s", *addr))
 
-	err = http.ListenAndServe(*addr, app.routes())
+	err = srv.ListenAndServe()
 	logger.Error(err.Error())
 	os.Exit(1)
 	// END STARTING SERVER
