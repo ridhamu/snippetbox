@@ -50,13 +50,6 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, data, "view.html")
 }
 
-type FormData struct {
-	Title   string
-	Content string
-	Expires int
-	validator.Validator
-}
-
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	formData := FormData{
 		Expires: 365,
@@ -68,25 +61,20 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, data, "create.html")
 }
 
+type FormData struct {
+	Title               string `form:"title"`
+	Content             string `form:"content"`
+	Expires             int    `form:"expires"`
+	validator.Validator `form:"-"`
+}
+
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
+	var formData FormData
+
+	err := app.decodePostForm(r, &formData)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
-	}
-
-	title := r.PostForm.Get("title")
-	content := r.PostForm.Get("content")
-	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
-	formData := FormData{
-		Title:   title,
-		Content: content,
-		Expires: expires,
 	}
 
 	// not blank title
@@ -105,7 +93,7 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	id, err := app.snippetModel.Insert(title, content, expires)
+	id, err := app.snippetModel.Insert(formData.Title, formData.Content, formData.Expires)
 	if err != nil {
 		app.serverError(w, r, err)
 		return

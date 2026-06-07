@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/ridhamu/snippetbox/internal/models"
@@ -19,6 +20,7 @@ type application struct {
 	logger        *slog.Logger
 	snippetModel  *models.SnippetModels
 	templateCache map[string]*template.Template
+	formDecoder   *form.Decoder
 }
 
 func main() {
@@ -46,6 +48,9 @@ func main() {
 		_ = db.Close()
 	}()
 
+	// initialize form decoder
+	formDecoder := form.NewDecoder()
+
 	// app init
 	app := application{
 		logger: logger,
@@ -53,6 +58,7 @@ func main() {
 			DB: db,
 		},
 		templateCache: cacheTemplate,
+		formDecoder:   formDecoder,
 	}
 	// END INIT
 
