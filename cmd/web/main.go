@@ -9,7 +9,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 
@@ -17,10 +20,11 @@ import (
 )
 
 type application struct {
-	logger        *slog.Logger
-	snippetModel  *models.SnippetModels
-	templateCache map[string]*template.Template
-	formDecoder   *form.Decoder
+	logger         *slog.Logger
+	snippetModel   *models.SnippetModels
+	templateCache  map[string]*template.Template
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 }
 
 func main() {
@@ -51,14 +55,19 @@ func main() {
 	// initialize form decoder
 	formDecoder := form.NewDecoder()
 
+	sessionManager := scs.New()
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	// app init
 	app := application{
 		logger: logger,
 		snippetModel: &models.SnippetModels{
 			DB: db,
 		},
-		templateCache: cacheTemplate,
-		formDecoder:   formDecoder,
+		templateCache:  cacheTemplate,
+		formDecoder:    formDecoder,
+		sessionManager: sessionManager,
 	}
 	// END INIT
 
