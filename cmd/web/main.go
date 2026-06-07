@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -70,18 +71,26 @@ func main() {
 		sessionManager: sessionManager,
 	}
 
+	// tls config
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
+
 	// init server configuration
 	srv := http.Server{
-		Addr:     *addr,
-		Handler:  app.routes(),
-		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelWarn),
+		Addr:      *addr,
+		Handler:   app.routes(),
+		ErrorLog:  slog.NewLogLogger(logger.Handler(), slog.LevelWarn),
+		TLSConfig: tlsConfig,
 	}
 	// END INIT
 
 	// STARTING SERVER
 	logger.Info(fmt.Sprintf("Server Running on %s", *addr))
 
-	err = srv.ListenAndServe()
+	// err = srv.ListenAndServe()
+	err = srv.ListenAndServeTLS("./tls/localhost+1.pem", "./tls/localhost+1-key.pem")
+
 	logger.Error(err.Error())
 	os.Exit(1)
 	// END STARTING SERVER
