@@ -46,6 +46,13 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, data, "view.html")
 }
 
+type FormData struct {
+	Title               string `form:"title"`
+	Content             string `form:"content"`
+	Expires             int    `form:"expires"`
+	validator.Validator `form:"-"`
+}
+
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	formData := FormData{
 		Expires: 365,
@@ -55,13 +62,6 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	data.Form = formData
 
 	app.render(w, r, http.StatusOK, data, "create.html")
-}
-
-type FormData struct {
-	Title               string `form:"title"`
-	Content             string `form:"content"`
-	Expires             int    `form:"expires"`
-	validator.Validator `form:"-"`
 }
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
@@ -157,12 +157,63 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 }
 
+type UserLoginForm struct {
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Displaying form for user signup")
+	data := app.newTemplateData(r)
+	data.Form = UserLoginForm{}
+	app.render(w, r, http.StatusOK, data, "login.html")
 }
 
 func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Logging in the user")
+	var formData UserLoginForm
+
+	err := app.decodePostForm(r, &formData)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// not blank name
+	// not blank email
+	formData.CheckField(validator.NotBlankString(formData.Email), "email", "This field cannot be blank")
+	//	valid email
+	formData.CheckField(validator.Matches(formData.Email, validator.EmailRX), "email", "This field must be a valid email address")
+	// password cannot be empty
+	formData.CheckField(validator.NotBlankString(formData.Password), "password", "This field cannot be blank")
+
+	if !formData.Valid() { // i want to add break point here and see the errorFields
+		data := app.newTemplateData(r)
+		data.Form = formData
+		app.render(w, r, http.StatusUnprocessableEntity, data, "login.html")
+		return
+	}
+
+	id, err := app.userModel.AuthenticateUser(formData.Email, formData.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			formData.AddNonFieldError("Login failed; Invalid user ID or password.")
+			data := app.newTemplateData(r)
+			data.Form = formData
+			app.render(w, r, http.StatusUnprocessableEntity, data, "login.html")
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	err = app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
+	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 
 func (app *application) userLogout(w http.ResponseWriter, r *http.Request) {
