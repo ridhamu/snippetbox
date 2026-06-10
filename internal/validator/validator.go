@@ -2,6 +2,7 @@
 package validator
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -36,6 +37,11 @@ func NotBlankString(value string) bool {
 	return strings.TrimSpace(value) != ""
 }
 
+// MinChars check wether given values is >= given min
+func MinChars(value string, min int) bool {
+	return utf8.RuneCountInString(value) >= min
+}
+
 // MaxChars check wehter given values is <= given max
 func MaxChars(value string, max int) bool {
 	return utf8.RuneCountInString(value) <= max
@@ -44,4 +50,10 @@ func MaxChars(value string, max int) bool {
 // PermittedValue check if given value is one of the given permitted values
 func PermittedValue[T comparable](value T, permittedValues ...T) bool {
 	return slices.Contains(permittedValues, value)
+}
+
+var EmailRX = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
+func Matches(value string, rx *regexp.Regexp) bool {
+	return rx.MatchString(value)
 }

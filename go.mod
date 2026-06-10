@@ -1,15 +1,14 @@
 module github.com/ridhamu/snippetbox
 
-go 1.23.0
+go 1.25.0
 
 require (
+	github.com/alexedwards/scs/mysqlstore v0.0.0-20251002162104-209de6e426de
+	github.com/alexedwards/scs/v2 v2.9.0
+	github.com/go-playground/form/v4 v4.3.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/justinas/alice v1.2.0
+	golang.org/x/crypto v0.53.0
 )
 
-require (
-	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/alexedwards/scs/mysqlstore v0.0.0-20251002162104-209de6e426de // indirect
-	github.com/alexedwards/scs/v2 v2.9.0 // indirect
-	github.com/go-playground/form/v4 v4.3.0 // indirect
-)
+require filippo.io/edwards25519 v1.1.0 // indirect

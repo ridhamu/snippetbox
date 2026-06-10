@@ -100,12 +100,61 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }
 
+type UserSignupFormData struct {
+	Name                string `form:"name"`
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Displaying form for user signup")
+	data := app.newTemplateData(r)
+	data.Form = UserSignupFormData{}
+	app.render(w, r, http.StatusOK, data, "signup.html")
 }
 
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "adding new user to the database")
+	var formData UserSignupFormData
+
+	err := app.decodePostForm(r, &formData)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// not blank name
+	formData.CheckField(validator.NotBlankString(formData.Name), "name", "This field cannot be blank")
+	// not blank email
+	formData.CheckField(validator.NotBlankString(formData.Email), "email", "This field cannot be blank")
+	//	valid email
+	formData.CheckField(validator.Matches(formData.Email, validator.EmailRX), "email", "This field must be a valid email address")
+	// password cannot be empty
+	formData.CheckField(validator.NotBlankString(formData.Password), "password", "This field cannot be blank")
+	// password minimum 8 characters length
+	formData.CheckField(validator.MinChars(formData.Password, 8), "password", "This field must be at least 8 characters long")
+
+	if !formData.Valid() { // i want to add break point here and see the errorFields
+		data := app.newTemplateData(r)
+		data.Form = formData
+		app.render(w, r, http.StatusUnprocessableEntity, data, "signup.html")
+		return
+	}
+
+	err = app.userModel.Insert(formData.Name, formData.Email, formData.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrDupEmail) {
+			formData.AddField("email", "Email already taken")
+			data := app.newTemplateData(r)
+			data.Form = formData
+			app.render(w, r, http.StatusUnprocessableEntity, data, "signup.html")
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Your Signup was succesful. Please log in.")
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 }
 
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
