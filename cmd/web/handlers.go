@@ -75,6 +75,7 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 
 	// not blank title
 	formData.CheckField(validator.NotBlankString(formData.Title), "title", "This field cannot be blank")
+	formData.CheckField(false, "title", "cannot be less than 8 characters")
 	// not more than 100 chars
 	formData.CheckField(validator.MaxChars(formData.Title, 100), "title", "This field cannot be more than 100 characters long")
 	// not blank content
@@ -217,5 +218,19 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) userLogout(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Logging out the user")
+	// before we perform "logout the users" which means removing from session "authenticatedUserID",
+	// we renew our token session
+	err := app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// perform the logout
+	app.sessionManager.Remove(r.Context(), "authenticatedUserID")
+
+	// add flash message thorugh "flash" session
+	app.sessionManager.Put(r.Context(), "flash", "You've been logout succesfully")
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
