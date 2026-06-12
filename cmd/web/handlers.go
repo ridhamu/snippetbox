@@ -75,7 +75,6 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 
 	// not blank title
 	formData.CheckField(validator.NotBlankString(formData.Title), "title", "This field cannot be blank")
-	formData.CheckField(false, "title", "cannot be less than 8 characters")
 	// not more than 100 chars
 	formData.CheckField(validator.MaxChars(formData.Title, 100), "title", "This field cannot be more than 100 characters long")
 	// not blank content
