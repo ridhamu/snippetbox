@@ -1,9 +1,12 @@
 package main
 
 import (
+	"io/fs"
 	"net/http"
+	"path/filepath"
 
 	"github.com/justinas/alice"
+	"github.com/ridhamu/snippetbox/ui"
 )
 
 // mux := http.NewServeMux()
@@ -19,10 +22,19 @@ import (
 
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
-	staticFileHandler := http.FileServer(neuteredFileSystem{http.Dir("./ui/static/")})
 
-	// mux.Handle("GET /static/", http.StripPrefix("/static", neuter(staticFileHandler)))
-	mux.Handle("GET /static/", http.StripPrefix("/static", staticFileHandler))
+	// staticFileHandler := http.FileServer(neuteredFileSystem{http.Dir("./ui/static/")})
+	// mux.Handle("GET /static/", http.StripPrefix("/static", staticFileHandler))
+
+	// mux.Handle("GET /static/", http.FileServerFS(ui.Files))
+
+	staticFiles, err := fs.Sub(ui.Files, "static")
+	if err != nil {
+		panic(err)
+	}
+
+	staticHandler := http.FileServer(neuteredFileSystem{http.FS(staticFiles)})
+	mux.Handle("GET /static/", staticHandler)
 
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 
@@ -43,4 +55,34 @@ func (app *application) routes() http.Handler {
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
 
 	return standard.Then(mux)
+}
+
+type neuteredFileSystem struct {
+	fs http.FileSystem
+}
+
+func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
+	f, err := nfs.fs.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if s.IsDir() {
+		index := filepath.Join(path, "index.html")
+		if _, err := nfs.fs.Open(index); err != nil {
+			closeErr := f.Close()
+			if closeErr != nil {
+				return nil, closeErr
+			}
+
+			return nil, err
+		}
+	}
+
+	return f, nil
 }
