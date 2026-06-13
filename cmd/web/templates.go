@@ -2,10 +2,12 @@ package main
 
 import (
 	"html/template"
+	"io/fs"
 	"path/filepath"
 	"time"
 
 	"github.com/ridhamu/snippetbox/internal/models"
+	"github.com/ridhamu/snippetbox/ui"
 )
 
 type templateData struct {
@@ -29,26 +31,21 @@ var funcs = template.FuncMap{
 func newTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
 
-	fileList, err := filepath.Glob("./ui/html/pages/*.html")
+	fileList, err := fs.Glob(ui.Files, "html/pages/*.html")
 	if err != nil {
 		return nil, err
 	}
 
-	for _, page := range fileList {
-		name := filepath.Base(page)
+	for _, file := range fileList {
+		name := filepath.Base(file)
 
-		// ts, err := template.ParseFiles("./ui/html/base.html")
-		ts, err := template.New(name).Funcs(funcs).ParseFiles("./ui/html/base.html")
-		if err != nil {
-			return nil, err
+		patterns := []string{
+			"html/base.html",
+			"html/partials/*.html",
+			file,
 		}
 
-		ts, err = ts.ParseGlob("./ui/html/partials/*.html")
-		if err != nil {
-			return nil, err
-		}
-
-		ts, err = ts.ParseFiles(page)
+		ts, err := template.New(name).Funcs(funcs).ParseFS(ui.Files, patterns...)
 		if err != nil {
 			return nil, err
 		}
