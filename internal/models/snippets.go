@@ -15,11 +15,17 @@ type Snippet struct {
 	Expires time.Time
 }
 
-type SnippetModels struct {
+type SnippetModel struct {
 	DB *sql.DB
 }
 
-func (sm *SnippetModels) Insert(title string, content string, expires int) (int, error) {
+type SnippetModelInterface interface {
+	Insert(title string, content string, expires int) (int, error)
+	Get(id int) (Snippet, error)
+	Latest() ([]Snippet, error)
+}
+
+func (sm *SnippetModel) Insert(title string, content string, expires int) (int, error) {
 	stmt := `INSERT INTO snippets (title, content, created, expires)
 VALUES(?, ?, UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY))`
 
@@ -36,7 +42,7 @@ VALUES(?, ?, UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY))`
 	return int(id), nil
 }
 
-func (sm *SnippetModels) Get(id int) (Snippet, error) {
+func (sm *SnippetModel) Get(id int) (Snippet, error) {
 	stmt := `SELECT id, title, content, created, expires FROM snippets
 WHERE expires > UTC_TIMESTAMP() AND id = ?`
 
@@ -55,7 +61,7 @@ WHERE expires > UTC_TIMESTAMP() AND id = ?`
 	return oneRowSnippet, nil
 }
 
-func (sm *SnippetModels) Latest() ([]Snippet, error) {
+func (sm *SnippetModel) Latest() ([]Snippet, error) {
 	stmt := `SELECT id, title, content, created, expires FROM snippets
 WHERE expires > UTC_TIMESTAMP() ORDER BY id DESC LIMIT 10`
 
