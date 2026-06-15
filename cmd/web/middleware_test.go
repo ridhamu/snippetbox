@@ -59,7 +59,6 @@ func TestCommonHeaders(t *testing.T) {
 	assert.Equal(t, result.StatusCode, http.StatusOK)
 
 	defer result.Body.Close()
-
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
 		t.Fatal(err)
