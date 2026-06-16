@@ -1,8 +1,26 @@
 package mocks
 
-import "github.com/ridhamu/snippetbox/internal/models"
+import (
+	"time"
+
+	"github.com/ridhamu/snippetbox/internal/models"
+)
 
 type UserModel struct{}
+
+func (u *UserModel) Get(id int) (models.User, error) {
+	if id == 1 {
+		u := models.User{
+			ID:      1,
+			Name:    "Alice",
+			Email:   "alice@example.com",
+			Created: time.Now(),
+		}
+
+		return u, nil
+	}
+	return models.User{}, models.ErrNoRecord
+}
 
 func (u *UserModel) Insert(name, email, password string) error {
 	switch email {

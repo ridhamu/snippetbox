@@ -26,6 +26,22 @@ type UserModelInterface interface {
 	Insert(name, email, password string) error
 	AuthenticateUser(email, password string) (int, error)
 	Exists(id int) (bool, error)
+	Get(id int) (User, error)
+}
+
+func (m *UserModel) Get(id int) (User, error) {
+	var myUser User
+	stmt := `SELECT id, name, email, created FROM users WHERE id = ?`
+	err := m.DB.QueryRow(stmt, id).Scan(&myUser.ID, &myUser.Name, &myUser.Email, &myUser.Created)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrNoRecord
+		} else {
+			return User{}, err
+		}
+	}
+
+	return myUser, nil
 }
 
 func (m *UserModel) Insert(name, email, password string) error {
