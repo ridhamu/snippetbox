@@ -53,9 +53,8 @@ func newTestServer(t *testing.T, h http.Handler) *testServer {
 		t.Fatal(err)
 	}
 
-	client := ts.Client()
-	client.Jar = jar
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	ts.Client().Jar = jar
+	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 
