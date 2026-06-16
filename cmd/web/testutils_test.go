@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -42,6 +43,7 @@ func newTestApplication(t *testing.T) *application {
 
 type testServer struct {
 	*httptest.Server
+	client *http.Client
 }
 
 func newTestServer(t *testing.T, h http.Handler) *testServer {
@@ -53,16 +55,17 @@ func newTestServer(t *testing.T, h http.Handler) *testServer {
 		t.Fatal(err)
 	}
 
-	ts.Client().Jar = jar
-	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	client := ts.Client()
+	client.Jar = jar
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 
-	return &testServer{ts}
+	return &testServer{ts, client}
 }
 
 func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, string) {
-	result, err := ts.Client().Get(ts.URL + urlPath)
+	result, err := ts.client.Get(ts.URL + urlPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,25 +75,30 @@ func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, strin
 	if err != nil {
 		t.Fatal(err)
 	}
-	body = bytes.TrimSpace(body)
 
-	return result.StatusCode, result.Header, string(body)
+	return result.StatusCode, result.Header, string(bytes.TrimSpace(body))
 }
 
 func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (int, http.Header, string) {
-	rs, err := ts.Client().PostForm(ts.URL+urlPath, form)
+	req, err := http.NewRequest(http.MethodPost, ts.URL+urlPath, strings.NewReader(form.Encode()))
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Read the response body from the test server.
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", ts.URL)
+
+	rs, err := ts.client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer rs.Body.Close()
+
 	body, err := io.ReadAll(rs.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	body = bytes.TrimSpace(body)
-	// Return the response status, headers and body.
-	return rs.StatusCode, rs.Header, string(body)
+
+	return rs.StatusCode, rs.Header, string(bytes.TrimSpace(body))
 }
 
 var csrfTokenRX = regexp.MustCompile(`<input type='hidden' name='csrf_token' value='(.+)'>`)
