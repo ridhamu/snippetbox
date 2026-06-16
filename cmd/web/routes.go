@@ -20,13 +20,13 @@ import (
 // mux.HandleFunc("GET /snippet/create", app.snippetCreate)
 // mux.HandleFunc("POST /snippet/create", app.snippetCreatePost)
 
+// staticFileHandler := http.FileServer(neuteredFileSystem{http.Dir("./ui/static/")})
+// mux.Handle("GET /static/", http.StripPrefix("/static", staticFileHandler))
+
+// mux.Handle("GET /static/", http.FileServerFS(ui.Files))
+
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
-
-	// staticFileHandler := http.FileServer(neuteredFileSystem{http.Dir("./ui/static/")})
-	// mux.Handle("GET /static/", http.StripPrefix("/static", staticFileHandler))
-
-	// mux.Handle("GET /static/", http.FileServerFS(ui.Files))
 
 	staticFiles, err := fs.Sub(ui.Files, "static")
 	if err != nil {
@@ -38,6 +38,7 @@ func (app *application) routes() http.Handler {
 
 	mux.HandleFunc("GET /ping", ping)
 
+	// dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 
 	// routes that doesn't required auth
