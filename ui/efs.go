@@ -1,3 +1,4 @@
+// Package ui
 package ui
 
 import "embed"

@@ -69,7 +69,7 @@ func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, strin
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer result.Body.Close()
+	defer func() { _ = result.Body.Close() }()
 
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
@@ -91,7 +91,9 @@ func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (i
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rs.Body.Close()
+	defer func() {
+		_ = rs.Body.Close()
+	}()
 
 	body, err := io.ReadAll(rs.Body)
 	if err != nil {

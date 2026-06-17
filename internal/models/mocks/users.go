@@ -8,6 +8,18 @@ import (
 
 type UserModel struct{}
 
+func (u *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) error {
+	if id == 1 {
+		if currentPassword != "pa$$word" {
+			return models.ErrInvalidCredentials
+		}
+
+		return nil
+	}
+
+	return models.ErrNoRecord
+}
+
 func (u *UserModel) Get(id int) (models.User, error) {
 	if id == 1 {
 		u := models.User{

@@ -15,18 +15,20 @@ func newTestDB(t *testing.T) *sql.DB {
 	// setup the tables
 	setupScript, err := os.ReadFile("./testdata/setup.sql")
 	if err != nil {
-		dbPool.Close()
+		_ = dbPool.Close()
 		t.Fatal(err)
 	}
 
 	_, err = dbPool.Exec(string(setupScript))
 	if err != nil {
-		dbPool.Close()
+		_ = dbPool.Close()
 		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
-		defer dbPool.Close()
+		defer func() {
+			_ = dbPool.Close()
+		}()
 		teardownScript, err := os.ReadFile("./testdata/teardown.sql")
 		if err != nil {
 			t.Fatal(err)

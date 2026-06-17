@@ -1,3 +1,4 @@
+// Package assert
 package assert
 
 import (
